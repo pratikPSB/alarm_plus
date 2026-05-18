@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="alarm_plus_notification_title">Alarm</string>
+    <string name="alarm_plus_notification_body">Tap to open alarm controls</string>
+    <string name="alarm_plus_action_stop">Stop</string>
+    <string name="alarm_plus_action_snooze">Snooze</string>
+</resources>
+
