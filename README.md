@@ -7,56 +7,6 @@
 
 It uses `MethodChannel` + `EventChannel` and does **not** depend on `flutter_local_notifications` internally.
 
-[//]: # (## Research Learnings)
-
-[//]: # ()
-[//]: # (### 1&#41; `flutter_alarmkit`)
-
-[//]: # (Source: [pub.dev/packages/flutter_alarmkit]&#40;https://pub.dev/packages/flutter_alarmkit&#41;)
-
-[//]: # ()
-[//]: # (- Architecture: iOS-first channel wrapper around AlarmKit with event stream.)
-
-[//]: # (- Strengths: clean channel separation and alarm update streaming.)
-
-[//]: # (- Limitations: iOS 26+ requirement is too narrow for most production apps; no Android strategy.)
-
-[//]: # (- Adopted here: clean channel/event separation and explicit capability checks.)
-
-[//]: # (- Improved here: practical iOS 13+ notification fallback.)
-
-[//]: # ()
-[//]: # (### 2&#41; `alarm`)
-
-[//]: # (Source: [pub.dev/packages/alarm]&#40;https://pub.dev/packages/alarm&#41;)
-
-[//]: # ()
-[//]: # (- Architecture: Android AlarmManager/receiver/service chain; cross-platform API.)
-
-[//]: # (- Strengths: strong Android alarm runtime shape and reboot rescheduling.)
-
-[//]: # (- Limitations: iOS behavior can rely on opportunistic background survival paths; some reliability gaps around delayed delivery handling.)
-
-[//]: # (- Adopted here: Android native trigger chain, boot reschedule model.)
-
-[//]: # (- Improved here: Room-backed state, explicit drift tracking, bounded retry metadata, strict notification-first iOS behavior.)
-
-[//]: # ()
-[//]: # (### 3&#41; `flutter_local_notifications`)
-
-[//]: # (Source: [pub.dev/packages/flutter_local_notifications]&#40;https://pub.dev/packages/flutter_local_notifications&#41;)
-
-[//]: # ()
-[//]: # (- Architecture: mature channel mapping + permission/action patterns.)
-
-[//]: # (- Strengths: API ergonomics and permission guidance.)
-
-[//]: # (- Limitation for alarms: notification scheduler, not a dedicated alarm runtime engine.)
-
-[//]: # (- Adopted here: permission/status API patterns and action semantics.)
-
-[//]: # (- Improved here: dedicated Android ringing service with wake lock and alarm-focused lifecycle.)
-
 ## Features
 
 - Unified Dart API:
@@ -343,3 +293,11 @@ iOS path provides a robust hybrid approach:
 - permissions/status
 - event stream logs
 - launch-alarm handoff
+
+## References and Learnings
+
+### 1) `alarm`
+Source: [pub.dev/packages/alarm](https://pub.dev/packages/alarm)
+
+### 2) `flutter_local_notifications`
+Source: [pub.dev/packages/flutter_local_notifications](https://pub.dev/packages/flutter_local_notifications)
