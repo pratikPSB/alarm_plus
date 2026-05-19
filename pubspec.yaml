@@ -33,8 +33,6 @@ flutter:
 topics:
   - alarm
   - full_screen_alarm
-  - alarm_stop
-  - alarm_snooze
   - alarm_events
   - notification
 
