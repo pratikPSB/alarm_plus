@@ -34,10 +34,11 @@ abstract class AlarmPlusPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  /// Initializes the platform-specific alarm implementation.
-  ///
-  /// Must be called once at app startup before any alarm operations.
-  /// Sets up channels, listeners, and retrieves any pending notification responses.
+   /// Initializes the platform-specific alarm implementation.
+   ///
+   /// Must be called once at app startup before any alarm operations.
+   /// Sets up channels, listeners, and retrieves any pending
+   /// notification responses.
   Future<void> initialize({
     DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
     DidReceiveBackgroundNotificationResponseCallback?

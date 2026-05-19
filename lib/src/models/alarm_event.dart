@@ -9,11 +9,11 @@ import 'package:alarm_plus/alarm_plus.dart';
 ///
 /// | Type | Meaning | Meta Fields |
 /// |------|---------|-------------|
-/// | `triggered` | Alarm fired and started ringing | `driftMs`: delay in ms from scheduled time |
+/// | `triggered` | Alarm fired and started ringing | `driftMs`: delay in ms |
 /// | `stopped` | Alarm audio stopped | (empty) |
 /// | `snoozed` | Snooze activated | `minutes`: snooze duration |
-/// | `error` | Scheduling or runtime error | N/A; check `errorCode`/`errorMessage` |
-/// | `permissionChanged` | Permission status changed | full permission status map |
+/// | `error` | Scheduling or runtime error | N/A; check errorCode |
+/// | `permissionChanged` | Permission status changed | status map |
 ///
 /// **Example**:
 /// ```dart
