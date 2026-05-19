@@ -1,3 +1,6 @@
+## 0.1.2
+- refactoring the pubspec to properly bind the home page and issue tracker.
+
 ## 0.1.1
 
 - Added URL-based image support for notifications:
