@@ -1,17 +1,20 @@
 import 'dart:ui';
 
+import 'package:alarm_plus/alarm_plus_platform_interface.dart';
+import 'package:alarm_plus/src/callback_dispatcher.dart';
+import 'package:alarm_plus/src/models/alarm_event.dart';
+import 'package:alarm_plus/src/models/alarm_model.dart';
+import 'package:alarm_plus/src/models/alarm_notification_settings.dart';
+import 'package:alarm_plus/src/models/alarm_permission_status.dart';
+import 'package:alarm_plus/src/models/notification_response.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-import 'alarm_plus_platform_interface.dart';
-import 'src/callback_dispatcher.dart';
-import 'src/models/alarm_event.dart';
-import 'src/models/alarm_model.dart';
-import 'src/models/alarm_notification_settings.dart';
-import 'src/models/alarm_permission_status.dart';
-import 'src/models/notification_response.dart';
-
 /// An implementation of [AlarmPlusPlatform] that uses method channels.
+///
+/// Communicates with native platform code (Android Kotlin, iOS Swift) via:
+/// - **MethodChannel** (`alarm_plus`): Bidirectional method calls
+/// - **EventChannel** (`alarm_plus/events`): Native → Dart event streaming
 class MethodChannelAlarmPlus extends AlarmPlusPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
@@ -28,13 +31,13 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
   }) async {
     _onDidReceiveNotificationResponse = onDidReceiveNotificationResponse;
     methodChannel.setMethodCallHandler(_handleMethodCall);
-    final Map<String, Object> arguments = <String, Object>{};
+    final arguments = <String, Object>{};
     _evaluateBackgroundCallback(
       onDidReceiveBackgroundNotificationResponse,
       arguments,
     );
     await methodChannel.invokeMethod<void>('initialize', arguments);
-    final Map<dynamic, dynamic>? pending = await methodChannel
+    final pending = await methodChannel
         .invokeMethod<Map<dynamic, dynamic>>('getLastNotificationResponse');
     if (pending != null) {
       _onDidReceiveNotificationResponse?.call(
@@ -97,7 +100,7 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
 
   @override
   Future<List<AlarmModel>> getAll() async {
-    final List<dynamic> items =
+    final items =
         await methodChannel.invokeMethod<List<dynamic>>('getAll') ??
         <dynamic>[];
     return items
@@ -117,7 +120,7 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
 
   @override
   Future<AlarmModel?> getLaunchAlarm() async {
-    final Map<dynamic, dynamic>? raw = await methodChannel
+    final raw = await methodChannel
         .invokeMethod<Map<dynamic, dynamic>>('getLaunchAlarm');
     if (raw == null) {
       return null;
@@ -127,7 +130,7 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
 
   @override
   Future<AlarmPermissionStatus> getPermissionStatus() async {
-    final Map<dynamic, dynamic> raw =
+    final raw =
         await methodChannel.invokeMethod<Map<dynamic, dynamic>>(
           'getPermissionStatus',
         ) ??
@@ -137,7 +140,7 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
 
   @override
   Future<AlarmPermissionStatus> requestPermissions() async {
-    final Map<dynamic, dynamic> raw =
+    final raw =
         await methodChannel.invokeMethod<Map<dynamic, dynamic>>(
           'requestPermissions',
         ) ??

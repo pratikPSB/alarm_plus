@@ -1,12 +1,12 @@
+import 'package:alarm_plus/alarm_plus_method_channel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:alarm_plus/alarm_plus_method_channel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  MethodChannelAlarmPlus platform = MethodChannelAlarmPlus();
-  const MethodChannel channel = MethodChannel('alarm_plus');
+  final platform = MethodChannelAlarmPlus();
+  const channel = MethodChannel('alarm_plus');
 
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -15,7 +15,7 @@ void main() {
 
   test('getAll maps response into AlarmModel list', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(channel, (methodCall) async {
           if (methodCall.method == 'getAll') {
             return <dynamic>[
               <String, dynamic>{
@@ -42,7 +42,7 @@ void main() {
 
   test('permission status maps response', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+        .setMockMethodCallHandler(channel, (methodCall) async {
           if (methodCall.method == 'getPermissionStatus') {
             return <String, dynamic>{
               'notificationsGranted': true,

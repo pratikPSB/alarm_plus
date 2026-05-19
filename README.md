@@ -30,13 +30,13 @@ It uses `MethodChannel` + `EventChannel` and does **not** depend on `flutter_loc
 
 ## Platform Behavior
 
-| Capability | Android | iOS |
-|---|---|---|
-| Exact alarm timing | Yes (`AlarmManager.setExactAndAllowWhileIdle`) | No (system-managed local notifications) |
-| Foreground ringing service | Yes | Yes (Background Audio keep-alive & AVAudioSession) |
-| Wake lock-managed playback | Yes | Yes (AVAudioPlayer looping) |
-| Full-screen/lock-screen path | Yes (full-screen intent + activity flags) | No equivalent |
-| Reboot reschedule | Yes | N/A (notification requests survive per OS policy) |
+| Capability                   | Android                                        | iOS                                                |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| Exact alarm timing           | Yes (`AlarmManager.setExactAndAllowWhileIdle`) | No (system-managed local notifications)            |
+| Foreground ringing service   | Yes                                            | Yes (Background Audio keep-alive & AVAudioSession) |
+| Wake lock-managed playback   | Yes                                            | Yes (AVAudioPlayer looping)                        |
+| Full-screen/lock-screen path | Yes (full-screen intent + activity flags)      | No equivalent                                      |
+| Reboot reschedule            | Yes                                            | N/A (notification requests survive per OS policy)  |
 
 ## Installation
 
@@ -294,10 +294,15 @@ iOS path provides a robust hybrid approach:
 - event stream logs
 - launch-alarm handoff
 
-## References and Learnings
-
-### 1) `alarm`
+---
+### References and Learnings
+#### 1) `alarm`
 Source: [pub.dev/packages/alarm](https://pub.dev/packages/alarm)
-
-### 2) `flutter_local_notifications`
+#### 2) `flutter_local_notifications`
 Source: [pub.dev/packages/flutter_local_notifications](https://pub.dev/packages/flutter_local_notifications)
+
+---
+
+* _Appreciate my work? Show some ❤️ and star the repo to support this package._
+
+* For more information about the properties, look at the [API reference](https://pub.dev/documentation/alarm_plus/latest/).
