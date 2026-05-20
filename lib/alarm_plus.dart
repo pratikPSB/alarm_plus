@@ -5,6 +5,8 @@ import 'package:alarm_plus/src/models/alarm_notification_settings.dart';
 import 'package:alarm_plus/src/models/alarm_permission_status.dart';
 import 'package:alarm_plus/src/models/notification_response.dart';
 
+export 'package:alarm_plus/src/models/vibration_settings.dart';
+export 'package:alarm_plus/src/models/volume_settings.dart';
 export 'src/models/alarm_event.dart';
 export 'src/models/alarm_model.dart';
 export 'src/models/alarm_notification_settings.dart';

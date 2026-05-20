@@ -5,13 +5,20 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.edit
@@ -34,11 +41,18 @@ class AlarmRingingService : Service() {
     private lateinit var repository: AlarmRepository
     private lateinit var scheduler: AlarmScheduler
     private lateinit var notificationManager: NotificationManager
+    private lateinit var audioManager: AudioManager
 
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private var mediaPlayer: MediaPlayer? = null
+    private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var activeAlarmId: String? = null
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var volumeEnforcementRunnable: Runnable? = null
+    private var originalSystemVolume: Int = -1
+    private var targetVolume: Float = 1.0f
 
     override fun onCreate() {
         super.onCreate()
@@ -46,6 +60,7 @@ class AlarmRingingService : Service() {
         scheduler = AlarmScheduler(applicationContext)
         notificationManager =
             getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         ensureNotificationChannel()
     }
 
@@ -260,6 +275,11 @@ class AlarmRingingService : Service() {
         @Suppress("UNCHECKED_CAST")
         val settings = platformMeta["notificationSettings"] as? Map<String, Any?>
         val soundAsset = settings?.get("soundAsset") as? String
+        
+        @Suppress("UNCHECKED_CAST")
+        val volumeSettings = settings?.get("volumeSettings") as? Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val vibrationSettings = settings?.get("vibrationSettings") as? Map<String, Any?>
 
         val defaultUri =
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
@@ -297,12 +317,129 @@ class AlarmRingingService : Service() {
             }
 
             prepare()
-            start()
         }
         mediaPlayer = player
+
+        applyVolumeSettings(volumeSettings)
+        applyVibrationSettings(vibrationSettings)
+        
+        player.start()
+    }
+
+    private fun applyVolumeSettings(settings: Map<String, Any?>?) {
+        val player = mediaPlayer ?: return
+        
+        val vol = (settings?.get("volume") as? Number)?.toFloat()
+        val fadeDurationMs = (settings?.get("fadeDurationMs") as? Number)?.toLong()
+        @Suppress("UNCHECKED_CAST")
+        val fadeSteps = settings?.get("fadeSteps") as? List<Map<String, Any?>>
+        val volumeEnforced = settings?.get("volumeEnforced") as? Boolean ?: false
+
+        targetVolume = vol ?: 1.0f
+
+        if (vol != null) {
+            originalSystemVolume = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            val targetSystemVol = (vol * maxVol).toInt()
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetSystemVol, 0)
+        }
+
+        if (fadeSteps != null && fadeSteps.isNotEmpty()) {
+            player.setVolume(0f, 0f)
+            fadeSteps.sortedBy { (it["atMs"] as? Number)?.toLong() ?: 0L }.forEach { step ->
+                val stepVol = (step["volume"] as? Number)?.toFloat() ?: 1.0f
+                val atMs = (step["atMs"] as? Number)?.toLong() ?: 0L
+                mainHandler.postDelayed({
+                    mediaPlayer?.setVolume(stepVol, stepVol)
+                }, atMs)
+            }
+        } else if (fadeDurationMs != null && fadeDurationMs > 0) {
+            player.setVolume(0f, 0f)
+            val startTime = System.currentTimeMillis()
+            val fadeRunnable = object : Runnable {
+                override fun run() {
+                    val currentMillis = System.currentTimeMillis() - startTime
+                    if (currentMillis < fadeDurationMs) {
+                        val currentVol = (currentMillis.toFloat() / fadeDurationMs) * targetVolume
+                        mediaPlayer?.setVolume(currentVol, currentVol)
+                        mainHandler.postDelayed(this, 50)
+                    } else {
+                        mediaPlayer?.setVolume(targetVolume, targetVolume)
+                    }
+                }
+            }
+            mainHandler.post(fadeRunnable)
+        } else {
+            player.setVolume(targetVolume, targetVolume)
+        }
+
+        if (volumeEnforced) {
+            val enforceRunnable = object : Runnable {
+                override fun run() {
+                    val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+                    val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                    val targetSystemVol = (targetVolume * maxVol).toInt()
+                    if (currentVol != targetSystemVol) {
+                        audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetSystemVol, 0)
+                    }
+                    mainHandler.postDelayed(this, 1000)
+                }
+            }
+            volumeEnforcementRunnable = enforceRunnable
+            mainHandler.post(enforceRunnable)
+        }
+    }
+
+    private fun applyVibrationSettings(settings: Map<String, Any?>?) {
+        val enabled = settings?.get("enabled") as? Boolean ?: true
+        if (!enabled) return
+
+        val preset = settings?.get("preset") as? String ?: "medium"
+        val continuous = settings?.get("continuous") as? Boolean ?: true
+        @Suppress("UNCHECKED_CAST")
+        val customPattern = settings?.get("customPattern") as? List<Number>
+
+        val v = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+        vibrator = v
+
+        val pattern = when (preset) {
+            "custom" -> {
+                if (customPattern != null && customPattern.isNotEmpty()) {
+                    customPattern.map { it.toLong() }.toLongArray()
+                } else {
+                    longArrayOf(0, 500, 500, 500) // fallback to medium
+                }
+            }
+            "strong" -> longArrayOf(0, 1000, 200, 1000)
+            "light" -> longArrayOf(0, 200, 500, 200)
+            "heartbeat" -> longArrayOf(0, 100, 100, 100, 500, 100, 100, 100)
+            else -> longArrayOf(0, 500, 500, 500) // medium
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val effect = VibrationEffect.createWaveform(pattern, if (continuous) 0 else -1)
+            v.vibrate(effect)
+        } else {
+            @Suppress("DEPRECATION")
+            v.vibrate(pattern, if (continuous) 0 else -1)
+        }
     }
 
     private fun stopPlayback() {
+        mainHandler.removeCallbacksAndMessages(null)
+        volumeEnforcementRunnable = null
+        
+        if (originalSystemVolume != -1) {
+            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, originalSystemVolume, 0)
+            originalSystemVolume = -1
+        }
+
         try {
             mediaPlayer?.stop()
         } catch (_: Throwable) {
@@ -312,6 +449,13 @@ class AlarmRingingService : Service() {
         } catch (_: Throwable) {
         }
         mediaPlayer = null
+
+        try {
+            vibrator?.cancel()
+        } catch (_: Throwable) {
+        }
+        vibrator = null
+
         activeAlarmId = null
         releaseWakeLock()
     }

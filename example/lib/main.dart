@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:alarm_plus/alarm_plus.dart';
 import 'dart:async';
+
+import 'package:alarm_plus/alarm_plus.dart';
+import 'package:flutter/material.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 final StreamController<NotificationResponse> _notificationResponseStream =
@@ -40,6 +41,12 @@ class _MyAppState extends State<MyApp> {
   AlarmPermissionStatus? _permissionStatus;
   StreamSubscription<AlarmEvent>? _eventSub;
   StreamSubscription<NotificationResponse>? _notificationResponseSub;
+
+  double _volume = 0.5;
+  bool _volumeEnforced = false;
+  int _fadeDurationSeconds = 5;
+  VibrationPreset _vibrationPreset = VibrationPreset.medium;
+  bool _vibrationEnabled = true;
 
   @override
   void initState() {
@@ -153,7 +160,7 @@ class _MyAppState extends State<MyApp> {
           'title': 'Alarm + Example',
           'source': 'example_app',
         },
-        notificationSettings: const AlarmNotificationSettings(
+        notificationSettings: AlarmNotificationSettings(
           title: 'Wake up!',
           body: 'It is time for your custom alarm.',
           stopButtonText: 'Dismiss',
@@ -161,7 +168,16 @@ class _MyAppState extends State<MyApp> {
           payload: 'custom_action_payload',
           // Assuming these assets exist or fallbacks handle missing
           soundAsset: 'assets/audio/alarm.mp3',
-          icon: 'ic_lock_idle_alarm', 
+          icon: 'ic_lock_idle_alarm',
+          volumeSettings: VolumeSettings(
+            volume: _volume,
+            volumeEnforced: _volumeEnforced,
+            fadeDuration: Duration(seconds: _fadeDurationSeconds),
+          ),
+          vibrationSettings: VibrationSettings(
+            enabled: _vibrationEnabled,
+            preset: _vibrationPreset,
+          ),
         ),
       );
       _appendLog('scheduled id=$id at=$time');
@@ -179,11 +195,20 @@ class _MyAppState extends State<MyApp> {
           'id': id.isEmpty ? 'quick_trigger' : id,
           'title': 'Trigger Now',
         },
-        notificationSettings: const AlarmNotificationSettings(
+        notificationSettings: AlarmNotificationSettings(
           title: 'Instant Alarm',
           body: 'Triggered immediately for testing.',
           stopButtonText: 'Stop Now',
           snoozeButtonText: 'Wait 5m',
+          volumeSettings: VolumeSettings(
+            volume: _volume,
+            volumeEnforced: _volumeEnforced,
+            fadeDuration: Duration(seconds: _fadeDurationSeconds),
+          ),
+          vibrationSettings: VibrationSettings(
+            enabled: _vibrationEnabled,
+            preset: _vibrationPreset,
+          ),
         ),
       );
       _appendLog('triggerNow invoked');
@@ -271,7 +296,8 @@ class _MyAppState extends State<MyApp> {
           payload: 'url_action_payload',
           // Example URLs - replace with actual working URLs
           largeIconUrl: 'https://via.placeholder.com/96x96.png?text=Icon',
-          bigPictureUrl: 'https://via.placeholder.com/400x200.png?text=Big+Picture',
+          bigPictureUrl:
+              'https://via.placeholder.com/400x200.png?text=Big+Picture',
         ),
       );
       _appendLog('scheduled with URL id=$id at=$time');
@@ -303,99 +329,174 @@ class _MyAppState extends State<MyApp> {
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                TextField(
-                  controller: _idController,
-                  decoration: const InputDecoration(
-                    labelText: 'Alarm ID',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+            child: CustomScrollView(
+              slivers: [
+                SliverList.list(
                   children: <Widget>[
-                    ElevatedButton(
-                      onPressed: _requestPermissions,
-                      child: const Text('Request Permissions'),
+                    TextField(
+                      controller: _idController,
+                      decoration: const InputDecoration(
+                        labelText: 'Alarm ID',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                    ElevatedButton(
-                      onPressed: _scheduleInOneMinute,
-                      child: const Text('Schedule +1 min'),
+                    const SizedBox(height: 12),
+                    const Divider(),
+                    Text(
+                      'Vibration & Volume Settings',
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    ElevatedButton(
-                      onPressed: _triggerNow,
-                      child: const Text('Trigger Now'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _snooze,
-                      child: const Text('Snooze 5 min'),
-                    ),
-                    ElevatedButton(onPressed: _stop, child: const Text('Stop')),
-                    ElevatedButton(
-                      onPressed: _cancel,
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _delete,
-                      child: const Text('Delete'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _refreshAll,
-                      child: const Text('Refresh'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _scheduleWithUrl,
-                      child: const Text('Schedule with URL'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Permission Status',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  _permissionStatus == null
-                      ? 'Loading...'
-                      : 'notifications=${_permissionStatus!.notificationsGranted} '
-                            'exact=${_permissionStatus!.exactAlarmsGranted} '
-                            'fullScreen=${_permissionStatus!.fullScreenIntentGranted}',
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Alarms (${_alarms.length})',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Expanded(
-                  child: ListView(
-                    children: <Widget>[
-                      for (final AlarmModel alarm in _alarms)
-                        ListTile(
-                          dense: true,
-                          title: Text('${alarm.id} [${alarm.status}]'),
-                          subtitle: Text(
-                            '${DateTime.fromMillisecondsSinceEpoch(alarm.scheduledTimeUtcMs, isUtc: true).toLocal()}'
-                            ' retry=${alarm.retryCount} drift=${alarm.lastDriftMs ?? '-'}',
+                    Row(
+                      children: [
+                        const Text('Volume: '),
+                        Expanded(
+                          child: Slider(
+                            value: _volume,
+                            onChanged: (v) => setState(() => _volume = v),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                Text('Events', style: Theme.of(context).textTheme.titleMedium),
-                SizedBox(
-                  height: 160,
-                  child: ListView(
-                    children: _logs
-                        .map(
-                          (String e) =>
-                              Text(e, style: const TextStyle(fontSize: 12)),
-                        )
-                        .toList(),
-                  ),
+                        Text('${(_volume * 100).toInt()}%'),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Fade (sec): '),
+                        Expanded(
+                          child: Slider(
+                            value: _fadeDurationSeconds.toDouble(),
+                            min: 0,
+                            max: 30,
+                            divisions: 30,
+                            onChanged: (v) => setState(
+                              () => _fadeDurationSeconds = v.toInt(),
+                            ),
+                          ),
+                        ),
+                        Text('$_fadeDurationSeconds s'),
+                      ],
+                    ),
+                    SwitchListTile(
+                      title: const Text('Enforce Volume'),
+                      value: _volumeEnforced,
+                      onChanged: (v) => setState(() => _volumeEnforced = v),
+                    ),
+                    Row(
+                      children: [
+                        const Text('Vibration: '),
+                        Switch(
+                          value: _vibrationEnabled,
+                          onChanged: (v) =>
+                              setState(() => _vibrationEnabled = v),
+                        ),
+                        const Spacer(),
+                        DropdownButton<VibrationPreset>(
+                          value: _vibrationPreset,
+                          items: VibrationPreset.values
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _vibrationPreset = v);
+                          },
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: <Widget>[
+                        ElevatedButton(
+                          onPressed: _requestPermissions,
+                          child: const Text('Request Permissions'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _scheduleInOneMinute,
+                          child: const Text('Schedule +1 min'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _triggerNow,
+                          child: const Text('Trigger Now'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _snooze,
+                          child: const Text('Snooze 5 min'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _stop,
+                          child: const Text('Stop'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _cancel,
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _delete,
+                          child: const Text('Delete'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _refreshAll,
+                          child: const Text('Refresh'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _scheduleWithUrl,
+                          child: const Text('Schedule with URL'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Permission Status',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text(
+                      _permissionStatus == null
+                          ? 'Loading...'
+                          : 'notifications=${_permissionStatus!.notificationsGranted} '
+                                'exact=${_permissionStatus!.exactAlarmsGranted} '
+                                'fullScreen=${_permissionStatus!.fullScreenIntentGranted}',
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Alarms (${_alarms.length})',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Expanded(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: <Widget>[
+                          for (final AlarmModel alarm in _alarms)
+                            ListTile(
+                              dense: true,
+                              title: Text('${alarm.id} [${alarm.status}]'),
+                              subtitle: Text(
+                                '${DateTime.fromMillisecondsSinceEpoch(alarm.scheduledTimeUtcMs, isUtc: true).toLocal()}'
+                                ' retry=${alarm.retryCount} drift=${alarm.lastDriftMs ?? '-'}',
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      'Events',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    SizedBox(
+                      height: 160,
+                      child: ListView(
+                        children: _logs
+                            .map(
+                              (String e) =>
+                                  Text(e, style: const TextStyle(fontSize: 12)),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

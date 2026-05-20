@@ -297,8 +297,12 @@ if (!status.notificationsGranted) {
 ### External Dependencies
 
 **Dart/Flutter**:
-- `plugin_platform_interface`: ^2.0.2 (plugin contract)
+- SDK constraints (from `pubspec.yaml`): `sdk: ^3.8.0`, `flutter: '>=3.3.0'` — use these when running `dart`/`flutter` tooling and CI
+- `plugin_platform_interface`: ^2.1.8 (plugin contract)  
 - `flutter_lints`: ^6.0.0 (analysis)
+
+**Dev / analysis tools**:
+- `very_good_analysis`: ^10.2.0 (present in `dev_dependencies` in `pubspec.yaml`) — some CI/dev flows in this repo use the Very Good CLI/analysis config in addition to `flutter_lints`
 
 **Android** (Kotlin):
 - `androidx.room:room-runtime` + `room-compiler`: 2.7.2 (persistence via KSP)

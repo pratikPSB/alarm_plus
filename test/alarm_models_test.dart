@@ -101,5 +101,49 @@ void main() {
     expect(parsed.largeIconUrl, 'https://example.com/large.png');
     expect(parsed.bigPictureUrl, 'https://example.com/big.jpg');
     expect(parsed.payload, 'test_payload');
+    expect(parsed.vibrationSettings.enabled, isTrue);
+    expect(parsed.volumeSettings.volume, isNull);
+  });
+
+  test('AlarmNotificationSettings with volume and vibration round trip', () {
+    const settings = AlarmNotificationSettings(
+      title: 'Vibration & Volume',
+      volumeSettings: VolumeSettings(
+        volume: 0.5,
+        fadeDuration: Duration(seconds: 10),
+        volumeEnforced: true,
+        fadeSteps: [
+          VolumeFadeStep(volume: 0.1, at: Duration.zero),
+        ],
+      ),
+      vibrationSettings: VibrationSettings(
+        preset: VibrationPreset.strong,
+        continuous: false,
+      ),
+    );
+
+    final map = settings.toMap();
+    final parsed = AlarmNotificationSettings.fromMap(map);
+
+    expect(parsed.volumeSettings.volume, 0.5);
+    expect(parsed.volumeSettings.fadeDuration?.inSeconds, 10);
+    expect(parsed.volumeSettings.volumeEnforced, isTrue);
+    expect(parsed.volumeSettings.fadeSteps.length, 1);
+    expect(parsed.volumeSettings.fadeSteps[0].volume, 0.1);
+
+    expect(parsed.vibrationSettings.enabled, isTrue);
+    expect(parsed.vibrationSettings.preset, VibrationPreset.strong);
+    expect(parsed.vibrationSettings.continuous, isFalse);
+  });
+
+  test('VibrationSettings with custom pattern', () {
+    const settings = VibrationSettings(
+      preset: VibrationPreset.custom,
+      customPattern: [0, 1000, 500, 1000],
+    );
+    final map = settings.toMap();
+    final parsed = VibrationSettings.fromMap(map);
+    expect(parsed.preset, VibrationPreset.custom);
+    expect(parsed.customPattern, [0, 1000, 500, 1000]);
   });
 }

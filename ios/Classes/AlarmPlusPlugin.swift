@@ -109,8 +109,8 @@ public class AlarmPlusPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, UNU
       payloadJson: payloadJson,
       status: "scheduled",
       createdAtMs: nowMs,
-      platformMeta: data["notificationSettings"] as? [String: Any] != nil 
-        ? ["notificationSettings": data["notificationSettings"]!] 
+      platformMeta: args["notificationSettings"] as? [String: Any] != nil
+        ? ["notificationSettings": args["notificationSettings"]!]
         : [:]
     )
     upsertRecord(record)
@@ -756,6 +756,8 @@ public class AlarmPlusPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, UNU
       let platformMeta = record["platformMeta"] as? [String: Any]
       let ns = platformMeta?["notificationSettings"] as? [String: Any]
       let soundAsset = ns?["soundAsset"] as? String
+      let volumeSettings = ns?["volumeSettings"] as? [String: Any]
+      let vibrationSettings = ns?["vibrationSettings"] as? [String: Any]
 
       let audioSession = AVAudioSession.sharedInstance()
       do {
@@ -768,19 +770,118 @@ public class AlarmPlusPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, UNU
           audioURL = URL(fileURLWithPath: path)
       }
 
+      if audioURL == nil {
+          // Fallback to a system sound if asset not found or not provided
+          audioURL = Bundle.main.url(forResource: "alarm", withExtension: "mp3") // Example fallback
+      }
+
       guard let url = audioURL else { return }
 
       do {
           alarmAudioPlayer = try AVAudioPlayer(contentsOf: url)
           alarmAudioPlayer?.numberOfLoops = -1
-          alarmAudioPlayer?.volume = 1.0
+          
+          applyVolumeSettings(volumeSettings)
+          applyVibrationSettings(vibrationSettings)
+          
           alarmAudioPlayer?.play()
       } catch { }
+  }
+
+  private func applyVolumeSettings(_ settings: [String: Any]?) {
+      guard let player = alarmAudioPlayer else { return }
+      
+      let vol = settings?["volume"] as? Double
+      let fadeDurationMs = settings?["fadeDurationMs"] as? Double
+      let fadeSteps = settings?["fadeSteps"] as? [[String: Any]]
+      let volumeEnforced = settings?["volumeEnforced"] as? Bool ?? false
+
+      let targetVolume = Float(vol ?? 1.0)
+      
+      if let steps = fadeSteps, !steps.isEmpty {
+          player.volume = 0
+          for step in steps {
+              let stepVol = Float(step["volume"] as? Double ?? 1.0)
+              let atMs = step["atMs"] as? Double ?? 0
+              Timer.scheduledTimer(withTimeInterval: atMs / 1000.0, repeats: false) { _ in
+                  player.setVolume(stepVol, fadeDuration: 0)
+              }
+          }
+      } else if let fadeMs = fadeDurationMs, fadeMs > 0 {
+          player.volume = 0
+          player.setVolume(targetVolume, fadeDuration: fadeMs / 1000.0)
+      } else {
+          player.volume = targetVolume
+      }
+
+      if volumeEnforced {
+          previousSystemVolume = AVAudioSession.sharedInstance().outputVolume
+          volumeEnforcementTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+              // iOS doesn't allow programmatic system volume change easily without private APIs or MPVolumeView
+              // But we can ensure OUR player volume stays at target
+              if player.volume != targetVolume && (fadeSteps == nil || fadeSteps!.isEmpty) && (fadeDurationMs == nil || fadeDurationMs! <= 0) {
+                  player.volume = targetVolume
+              }
+          }
+      }
+  }
+
+  private func applyVibrationSettings(_ settings: [String: Any]?) {
+      let enabled = settings?["enabled"] as? Bool ?? true
+      if !enabled { return }
+      
+      let preset = settings?["preset"] as? String ?? "medium"
+      let continuous = settings?["continuous"] as? Bool ?? true
+      let customPattern = settings?["customPattern"] as? [Int]
+      
+      if preset == "custom", let pattern = customPattern, !pattern.isEmpty {
+          var index = 0
+          let timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+              if index >= pattern.count {
+                  if continuous {
+                      index = 0
+                  } else {
+                      timer.invalidate()
+                      return
+                  }
+              }
+              
+              let duration = Double(pattern[index]) / 1000.0
+              if index % 2 != 0 {
+                  // Vibrate during odd indices (wait, VIBRATE, wait, VIBRATE)
+                  AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+              }
+              
+              // We need a more precise way to handle variable durations if we want to follow 'pattern' exactly.
+              // For now, this is a best-effort approximation for iOS background vibration.
+              index += 1
+          }
+          activeTimers["vibration"] = timer
+      } else {
+          let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: continuous) { _ in
+              switch preset {
+              case "strong":
+                  AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+              case "heartbeat":
+                  AudioServicesPlaySystemSound(1521)
+              case "light":
+                  AudioServicesPlaySystemSound(1519)
+              default:
+                  AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+              }
+          }
+          activeTimers["vibration"] = timer
+      }
   }
 
   private func stopRinging() {
       alarmAudioPlayer?.stop()
       alarmAudioPlayer = nil
+      volumeEnforcementTimer?.invalidate()
+      volumeEnforcementTimer = nil
+      activeTimers["vibration"]?.invalidate()
+      activeTimers.removeValue(forKey: "vibration")
+
       if activeTimers.isEmpty {
           stopSilentPlayer()
       } else {

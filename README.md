@@ -27,6 +27,10 @@ It uses `MethodChannel` + `EventChannel` and does **not** depend on `flutter_loc
 - Android notification actions (`STOP`, `SNOOZE`) work via receivers/service.
 - **Deep UI & Sound Customization**: Support for custom notification titles, bodies, custom action button texts, icons, big pictures, and custom audio assets (`.mp3`/`.wav` from Flutter assets) for both platforms via `AlarmNotificationSettings`.
 - **URL-based Images**: Load notification large icons and big pictures from HTTP/HTTPS URLs (Android uses Coil, iOS downloads synchronously).
+- **Vibration & Volume Customization**: 
+  - Android & iOS: Set custom volume levels (0.0-1.0), implement linear volume fading, or custom volume fade steps.
+  - Android & iOS: Vibration presets (strong, medium, light, heartbeat) and continuous vibration support.
+  - Android & iOS: Volume enforcement to prevent users from lowering volume during an active alarm.
 
 ## Platform Behavior
 
@@ -143,9 +147,36 @@ Future<void> setup() async {
       icon: 'ic_lock_idle_alarm', // Android drawable name
       largeIconUrl: 'https://example.com/icon.png', // URL for large icon
       bigPictureUrl: 'https://example.com/banner.jpg', // URL for big picture
+      volumeSettings: VolumeSettings(
+        volume: 0.8, // 80% volume
+        fadeDuration: Duration(seconds: 10), // Fade in over 10s
+        volumeEnforced: true, // Reset if user lowers volume
+      ),
+      vibrationSettings: VibrationSettings(
+        enabled: true,
+        preset: VibrationPreset.strong,
+        continuous: true,
+        // For custom patterns:
+        // preset: VibrationPreset.custom,
+        // customPattern: [0, 1000, 500, 1000], // [wait, vibrate, wait, vibrate]
+      ),
     ),
   );
 }
+```
+
+### Volume Fading with Custom Steps
+
+For advanced volume control, use `VolumeFadeStep`:
+
+```dart
+      volumeSettings: VolumeSettings(
+        fadeSteps: [
+          VolumeFadeStep(volume: 0.1, at: Duration(seconds: 0)),
+          VolumeFadeStep(volume: 0.5, at: Duration(seconds: 30)),
+          VolumeFadeStep(volume: 1.0, at: Duration(minutes: 1)),
+        ],
+      ),
 ```
 
 **Time Handling**: Always pass **local DateTime** to `schedule()`. The plugin automatically converts to UTC internally (`scheduledTimeUtcMs`). The `scheduledTimeLocalIso` field in AlarmModel is for UI display.

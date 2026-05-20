@@ -1,3 +1,6 @@
+import 'package:alarm_plus/src/models/vibration_settings.dart';
+import 'package:alarm_plus/src/models/volume_settings.dart';
+
 /// Customizes alarm notification appearance and behavior.
 ///
 /// Use this to define custom titles, bodies, button text, audio,
@@ -43,6 +46,8 @@ class AlarmNotificationSettings {
     this.largeIconUrl,
     this.bigPictureUrl,
     this.payload,
+    this.vibrationSettings = const VibrationSettings(),
+    this.volumeSettings = const VolumeSettings(),
   });
 
   /// Deserializes notification settings from a map.
@@ -59,6 +64,16 @@ class AlarmNotificationSettings {
       largeIconUrl: map['largeIconUrl']?.toString(),
       bigPictureUrl: map['bigPictureUrl']?.toString(),
       payload: map['payload']?.toString(),
+      vibrationSettings: map['vibrationSettings'] != null
+          ? VibrationSettings.fromMap(
+              Map<String, dynamic>.from(map['vibrationSettings'] as Map),
+            )
+          : const VibrationSettings(),
+      volumeSettings: map['volumeSettings'] != null
+          ? VolumeSettings.fromMap(
+              Map<String, dynamic>.from(map['volumeSettings'] as Map),
+            )
+          : const VolumeSettings(),
     );
   }
 
@@ -133,6 +148,12 @@ class AlarmNotificationSettings {
   /// For structured data, serialize to JSON string yourself.
   final String? payload;
 
+  /// Configuration for vibration pattern and behavior.
+  final VibrationSettings vibrationSettings;
+
+  /// Configuration for volume level, fading, and enforcement.
+  final VolumeSettings volumeSettings;
+
   /// Serializes notification settings to a map.
   ///
   /// Only non-null fields are included (sparse representation).
@@ -149,6 +170,8 @@ class AlarmNotificationSettings {
       if (largeIconUrl != null) 'largeIconUrl': largeIconUrl,
       if (bigPictureUrl != null) 'bigPictureUrl': bigPictureUrl,
       if (payload != null) 'payload': payload,
+      'vibrationSettings': vibrationSettings.toMap(),
+      'volumeSettings': volumeSettings.toMap(),
     };
   }
 }

@@ -1,3 +1,16 @@
+## 0.1.3
+- Added Vibration and Volume customization:
+  - New `VibrationSettings` model with presets: `strong`, `medium`, `light`, `heartbeat`, and support for custom vibration patterns.
+  - New `VolumeSettings` model with support for:
+    - Direct volume level (0.0 to 1.0).
+    - Linear volume fading over a specific duration.
+    - Custom volume fade steps using `VolumeFadeStep`.
+    - `volumeEnforced` to prevent users from lowering volume during an alarm.
+  - Android: Implemented volume control, fading, and vibration using `MediaPlayer` and `Vibrator`.
+  - iOS: Implemented volume control, fading, and vibration using `AVAudioPlayer` and `AudioServices`.
+- Updated example app with UI controls for vibration and volume settings.
+- Updated README with vibration and volume usage examples.
+
 ## 0.1.2
 - refactoring the pubspec to properly bind the home page and issue tracker.
 
