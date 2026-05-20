@@ -1,6 +1,6 @@
 name: alarm_plus
 description: Cross-platform alarm plugin with reliability-first Android exact alarms and iOS notification-based best-effort alarms.
-version: 0.1.2
+version: 0.1.3
 homepage: https://github.com/pratikPSB/alarm_plus
 repository: https://github.com/pratikPSB/alarm_plus
 issue_tracker: https://github.com/pratikPSB/alarm_plus/issues
