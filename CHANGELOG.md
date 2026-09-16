@@ -1,3 +1,10 @@
+## 0.2.0
+- iOS: adopted AlarmKit on iOS 26+ for real system alarms, with the existing `UNUserNotificationCenter` path kept as the best-effort fallback on iOS 15-25.
+  - Host apps must add `NSAlarmKitUsageDescription` to `Info.plist`; `requestPermissions()` now requests AlarmKit authorization on iOS 26+.
+  - On iOS 26+ AlarmKit owns the alert sound and haptics, so app-level volume and vibration settings do not apply there.
+- iOS: restructured the plugin from the single `ios/Classes/AlarmPlusPlugin.swift` file into a Swift Package under `ios/alarm_plus/Sources/alarm_plus/`, split into `Core/`, `Services/`, `Models/` and `Utils/`. This adds Swift Package Manager support.
+- iOS: raised the minimum deployment target from 13.0 to 15.0.
+
 ## 0.1.3
 - Added Vibration and Volume customization:
   - New `VibrationSettings` model with presets: `strong`, `medium`, `light`, `heartbeat`, and support for custom vibration patterns.

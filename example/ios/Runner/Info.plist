@@ -16,6 +16,8 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>alarm_plus_example</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Alarm Plus schedules alarms that you create.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

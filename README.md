@@ -3,7 +3,7 @@
 `alarm_plus` is a Flutter alarm plugin focused on production reliability:
 
 - Android: exact alarms + foreground ringing service + lock-screen/full-screen flow
-- iOS: OS-compliant notification-based best-effort alarms
+- iOS: AlarmKit system alarms on iOS 26+ with notification-based best-effort fallback on iOS 15-25
 
 It uses `MethodChannel` + `EventChannel` and does **not** depend on `flutter_local_notifications` internally.
 
@@ -27,19 +27,18 @@ It uses `MethodChannel` + `EventChannel` and does **not** depend on `flutter_loc
 - Android notification actions (`STOP`, `SNOOZE`) work via receivers/service.
 - **Deep UI & Sound Customization**: Support for custom notification titles, bodies, custom action button texts, icons, big pictures, and custom audio assets (`.mp3`/`.wav` from Flutter assets) for both platforms via `AlarmNotificationSettings`.
 - **URL-based Images**: Load notification large icons and big pictures from HTTP/HTTPS URLs (Android uses Coil, iOS downloads synchronously).
-- **Vibration & Volume Customization**: 
-  - Android & iOS: Set custom volume levels (0.0-1.0), implement linear volume fading, or custom volume fade steps.
-  - Android & iOS: Vibration presets (strong, medium, light, heartbeat) and continuous vibration support.
-  - Android & iOS: Volume enforcement to prevent users from lowering volume during an active alarm.
+- **Vibration & Volume Customization**:
+  - Android and iOS 15-25: set custom volume levels, fades, vibration presets, and continuous vibration.
+  - iOS 26+: AlarmKit owns the alert sound and haptics; the system alarm experience intentionally does not apply app-level volume or vibration settings.
 
 ## Platform Behavior
 
 | Capability                   | Android                                        | iOS                                                |
 |------------------------------|------------------------------------------------|----------------------------------------------------|
-| Exact alarm timing           | Yes (`AlarmManager.setExactAndAllowWhileIdle`) | No (system-managed local notifications)            |
-| Foreground ringing service   | Yes                                            | Yes (Background Audio keep-alive & AVAudioSession) |
-| Wake lock-managed playback   | Yes                                            | Yes (AVAudioPlayer looping)                        |
-| Full-screen/lock-screen path | Yes (full-screen intent + activity flags)      | No equivalent                                      |
+| Exact alarm timing           | Yes (`AlarmManager.setExactAndAllowWhileIdle`) | Yes on iOS 26+ (AlarmKit); best-effort local notification on iOS 15-25 |
+| Foreground ringing service   | Yes                                            | No; AlarmKit owns iOS 26+ alert playback           |
+| Wake lock-managed playback   | Yes                                            | No                                                   |
+| Full-screen/lock-screen path | Yes (full-screen intent + activity flags)      | System AlarmKit UI on iOS 26+                       |
 | Reboot reschedule            | Yes                                            | N/A (notification requests survive per OS policy)  |
 
 ## Installation
@@ -67,8 +66,14 @@ For lock-screen experience, ensure your launcher/Flutter activity can show over 
 
 ### iOS setup
 
-- iOS minimum target: `13.0`
-- Request notification permission from app flow (`requestPermissions()`).
+- iOS minimum target: `15.0`.
+- On iOS 26+, request AlarmKit permission from app flow (`requestPermissions()`). AlarmKit requires Xcode 26+ and an iOS 26+ device.
+- Add this required key to the host app's `Info.plist`:
+  ```xml
+  <key>NSAlarmKitUsageDescription</key>
+  <string>This app schedules alarms that you create.</string>
+  ```
+- On iOS 15-25, request notification permission from app flow (`requestPermissions()`).
 - **Required for true background alarms:** You must add the Audio Background Mode to your app's Xcode project. This allows alarms to ring out loud even if the physical silent switch is engaged and the app is in the background.
   1. Open `ios/Runner.xcworkspace`.
   2. Go to the `Runner` target -> **Signing & Capabilities**.
@@ -91,7 +96,7 @@ print("Full-Screen Intent (Android 14+): ${status.fullScreenIntentGranted}");
 
 | Permission                | Android                                    | iOS                               |
 |---------------------------|--------------------------------------------|-----------------------------------|
-| `notificationsGranted`    | Post notification permission (Android 13+) | Notification authorization status |
+| `notificationsGranted`    | Post notification permission (Android 13+) | AlarmKit authorization on iOS 26+; notification authorization on iOS 15-25 |
 | `exactAlarmsGranted`      | SCHEDULE_EXACT_ALARM permission            | Always `false` (not applicable)   |
 | `fullScreenIntentGranted` | USE_FULL_SCREEN_INTENT (Android 14+)       | Always `false` (not applicable)   |
 
@@ -109,7 +114,7 @@ if (!granted) {
 
 **On Android**: After `requestPermissions()`, if exact alarms fail, user must enable "Schedule exact alarm" in app settings.
 
-**On iOS**: Permission request shows system notification authorization dialog once. Subsequent calls don't show dialog.
+**On iOS**: `requestPermissions()` requests AlarmKit authorization on iOS 26+ and notification authorization on iOS 15-25.
 
 ## Usage
 
@@ -299,18 +304,19 @@ Android path is reliability-first:
 - trigger drift metrics persisted in model
 - bounded retry metadata (`retryCount`, `nextRetryAtMs`)
 
-iOS path provides a robust hybrid approach:
+iOS uses a versioned approach:
 
-- **True Background Alarms**: Uses `AVAudioSession` and a silent keep-alive player to play looping alarm audio and bypass the physical silent switch.
-- **Local Notification Fallback**: In case the app is explicitly killed (swiped up), OS-timed local notifications guarantee delivery.
-- Notification actions for stop/snooze.
+- **iOS 26+**: Native AlarmKit schedules the system-managed alarm UI, sound, and lifecycle. AlarmKit works through Focus and Silent mode without a Flutter dependency.
+- **iOS 15-25**: Local notifications and the existing best-effort AVAudioPlayer path remain the fallback.
+- The Dart `snooze()` API reschedules the current alarm. iOS 26+ uses the standard AlarmKit Stop action; no countdown widget extension is required.
 
 ## Troubleshooting
 
 - If Android alarms are delayed on vendor ROMs: verify battery/background restrictions for the app.
 - If exact alarms fail: check `getPermissionStatus().exactAlarmsGranted`.
 - If full-screen doesn’t appear on Android 14+: check `fullScreenIntentGranted` and open settings via `requestPermissions()`.
-- If no banner/sound on iOS: verify notification authorization and system notification settings.
+- If iOS 26+ alarms fail: verify `NSAlarmKitUsageDescription`, AlarmKit authorization, Xcode 26+, and a physical iOS 26+ device.
+- If iOS 15-25 alarms do not alert: verify notification authorization and system notification settings.
 
 ## Example
 

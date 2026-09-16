@@ -1,6 +1,6 @@
 name: alarm_plus
 description: Cross-platform alarm plugin with reliability-first Android exact alarms and iOS notification-based best-effort alarms.
-version: 0.1.3
+version: 0.2.0
 homepage: https://github.com/pratikPSB/alarm_plus
 repository: https://github.com/pratikPSB/alarm_plus
 issue_tracker: https://github.com/pratikPSB/alarm_plus/issues
@@ -18,7 +18,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
-  very_good_analysis: ^10.2.0
+  very_good_analysis: ^10.3.0
 
 flutter:
 

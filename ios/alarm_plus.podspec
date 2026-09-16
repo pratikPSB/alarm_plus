@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'alarm_plus'
-  s.version          = '0.1.0'
+  s.version          = '0.2.0'
   s.summary          = 'Reliability-first cross-platform alarm plugin for Flutter.'
   s.description      = <<-DESC
 Reliability-first cross-platform alarm plugin for Flutter:
@@ -15,9 +15,9 @@ iOS best-effort notification alarms.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'alarm_plus' => 'maintainers@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'alarm_plus/Sources/alarm_plus/**/*.swift'
   s.dependency 'Flutter'
-  s.platform = :ios, '13.0'
+  s.platform = :ios, '15.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
@@ -27,5 +27,5 @@ iOS best-effort notification alarms.
   # required reason APIs, update the PrivacyInfo.xcprivacy file to describe your
   # plugin's privacy impact, and then uncomment this line. For more information,
   # see https://developer.apple.com/documentation/bundleresources/privacy_manifest_files
-  # s.resource_bundles = {'alarm_plus_privacy' => ['Resources/PrivacyInfo.xcprivacy']}
+  s.resource_bundles = {'alarm_plus_privacy' => ['alarm_plus/Sources/alarm_plus/PrivacyInfo.xcprivacy']}
 end

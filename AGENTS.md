@@ -4,7 +4,7 @@
 
 **alarm_plus** is a production-reliability-focused Flutter alarm plugin providing:
 - **Android**: Exact alarm scheduling via `AlarmManager.setExactAndAllowWhileIdle`, receiver→service chain, foreground ringing service with wake locks, full-screen intent for lock-screen display, Room persistence with boot/package/time-change reschedule
-- **iOS**: Best-effort local notification scheduling via `UNUserNotificationCenter`, UserDefaults persistence, notification actions (stop/snooze), no background service emulation
+- **iOS**: AlarmKit system alarms on iOS 26+; best-effort local notification scheduling via `UNUserNotificationCenter` on iOS 15-25, UserDefaults persistence, notification actions (stop/snooze), no background service emulation
 
 **Design principle**: Android is reliability-first with deterministic timing guarantees; iOS is intentionally conservative and OS-compliant.
 
@@ -74,11 +74,21 @@ All alarm state transitions share a common **AlarmModel** serialized as Map:
 
 **Key Pattern**: Receiver → Foreground Service → Wake Lock → Loop Audio + EventChannel emit. No background execution assumes foreground service keeps process alive during alarm.
 
-### iOS (Swift, 13+)
+### iOS (Swift, 15+)
 
-**Core**: `ios/Classes/AlarmPlusPlugin.swift` (~800 lines, monolithic)
+**Core**: Swift Package under `ios/alarm_plus/Sources/alarm_plus/`:
+- `AlarmPlusPlugin.swift`: `FlutterPlugin` entry, method/event channel wiring
+- `Core/AlarmManager.swift`: `PluginAlarmManager`, the scheduling and state machine
+- `Core/AlarmKitIntegration.swift`: `AlarmMetadata` type for AlarmKit (iOS 26+)
+- `Services/`: `NotificationService`, `AudioService`, `AlarmStore`, `AssetResolver`
+- `Models/`: `AlarmRecord`, `AlarmEvent`, `PermissionStatus`
+- `Utils/`: `Constants`, `Sanitizer`
 
-**Key Methods**:
+AlarmKit code is guarded by `#if canImport(AlarmKit)` plus `@available(iOS 26.0, *)`, so the
+package still compiles on older Xcode. On iOS 26+ AlarmKit owns alert playback and haptics;
+below that the notification + `AVAudioPlayer` path runs.
+
+**Key Methods** (notification fallback path):
 - `userNotificationCenter(_:willPresent:withCompletionHandler:)`: Detect alarm trigger while app foreground
 - `userNotificationCenter(_:didReceive:withCompletionHandler:)`: Handle tap/actions (stop/snooze)
 - `scheduleNotification(record:fireDate:)`: Use UNCalendarNotificationTrigger for scheduling
@@ -97,7 +107,9 @@ All alarm state transitions share a common **AlarmModel** serialized as Map:
 - `fullScreenIntentGranted`: Always false (no iOS equivalent)
 - `criticalAlertsEligible`: From UNNotificationSettings.criticalAlertSetting
 
-**Key Pattern**: UNUserNotificationCenter delegate + UserDefaults store. No retry logic; relies on OS notification delivery.
+**Key Pattern**: On iOS 26+, `AlarmKit.AlarmManager.shared` schedules/cancels/stops and an async
+update stream drives events. Below 26, UNUserNotificationCenter delegate + UserDefaults store.
+No retry logic; relies on OS delivery.
 
 ## Dart Layer Conventions
 
@@ -214,7 +226,7 @@ flutter test --coverage
 genhtml coverage/lcov.report -o coverage/html
 
 # Format code
-dart format lib/ test/ android/src/main/kotlin ios/Classes example/lib
+dart format lib/ test/ android/src/main/kotlin example/lib
 dart fix --apply
 ```
 
@@ -232,9 +244,11 @@ dart fix --apply
 
 ### iOS Build Configuration
 
-- **Min Target**: 13.0
-- **Swift**: 5.0+
-- **Podspec**: `ios/alarm_plus.podspec` defines dependencies
+- **Min Target**: 15.0
+- **Swift**: 5.0+ (Package.swift declares swift-tools 5.9)
+- **Podspec**: `ios/alarm_plus.podspec`; `ios/alarm_plus/Package.swift` for Swift Package Manager.
+  Both point at `alarm_plus/Sources/alarm_plus/**` - keep them in sync.
+- **AlarmKit**: requires Xcode 26+ to compile the iOS 26 path and `NSAlarmKitUsageDescription` in the host app
 
 **Common Issues**:
 - NotificationCenter delegate conflicts → plugin saves/restores previous delegate
@@ -405,7 +419,15 @@ android/src/main/kotlin/com/psb/alarm_plus/
       ├─ AlarmDatabase.kt                  # Room database singleton
       └─ AlarmRepository.kt                # Data access abstraction
 
-ios/Classes/
-  └─ AlarmPlusPlugin.swift                 # Single file with all iOS logic
+ios/alarm_plus/                          # Swift Package
+  ├─ Package.swift
+  └─ Sources/alarm_plus/
+      ├─ AlarmPlusPlugin.swift             # FlutterPlugin entry + channel wiring
+      ├─ Core/
+      │   ├─ AlarmManager.swift            # PluginAlarmManager: scheduling + state machine
+      │   └─ AlarmKitIntegration.swift     # AlarmKit metadata type (iOS 26+)
+      ├─ Services/                         # NotificationService, AudioService, AlarmStore, AssetResolver
+      ├─ Models/                           # AlarmRecord, AlarmEvent, PermissionStatus
+      └─ Utils/                            # Constants, Sanitizer
 ```
 
