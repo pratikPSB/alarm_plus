@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:alarm_plus/alarm_plus.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 final StreamController<NotificationResponse> _notificationResponseStream =

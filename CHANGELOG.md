@@ -4,6 +4,7 @@
   - On iOS 26+ AlarmKit owns the alert sound and haptics, so app-level volume and vibration settings do not apply there.
 - iOS: restructured the plugin from the single `ios/Classes/AlarmPlusPlugin.swift` file into a Swift Package under `ios/alarm_plus/Sources/alarm_plus/`, split into `Core/`, `Services/`, `Models/` and `Utils/`. This adds Swift Package Manager support.
 - iOS: raised the minimum deployment target from 13.0 to 15.0.
+- Example/tooling: moved the example app to Flutter 3.47 (AGP 9.3.2, Gradle 9.5, Kotlin 2.3.20, compileSdk 37) and to `package:material_ui`. The plugin's own Dart and Android configuration is unchanged, so consumers on older Flutter versions are unaffected.
 
 ## 0.1.3
 - Added Vibration and Volume customization:
