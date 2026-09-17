@@ -47,10 +47,13 @@ class VolumeSettings {
       fadeDuration: map['fadeDurationMs'] != null
           ? Duration(milliseconds: (map['fadeDurationMs'] as num).toInt())
           : null,
-      fadeSteps: (map['fadeSteps'] as List?)
-              ?.map((e) => VolumeFadeStep.fromMap(
-                    Map<String, dynamic>.from(e as Map),
-                  ))
+      fadeSteps:
+          (map['fadeSteps'] as List?)
+              ?.map(
+                (e) => VolumeFadeStep.fromMap(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
               .toList() ??
           const [],
       volumeEnforced: map['volumeEnforced'] as bool? ?? false,

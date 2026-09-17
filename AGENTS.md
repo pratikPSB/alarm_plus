@@ -378,6 +378,19 @@ Dart app should listen to `AlarmPlus.events` and handle error types.
 6. **Mixing scheduled vs UTC timestamps**: All internal timestamps are UTC milliseconds; convert display time locally in Dart
 7. **Room DAO direct async calls without coroutine context**: Android Room DAOs return suspend functions; Kotlin plugin must provide coroutine scope
 
+## Known Issues
+
+1. [ ] Commit the uncommitted fixes: iOS results and events are now delivered on the main thread; Android `requestPermissions()` now waits for the user to return from each Settings screen.
+2. [ ] No permission-change event when the user changes a permission in Settings (iOS `authorizationUpdates` is not observed).
+3. [ ] Android asks for notification permission through the Settings screen instead of the system dialog.
+4. [ ] iOS 26+: a `stopped` event is sent before `snoozed`.
+5. [ ] iOS 26+: there is no fallback when AlarmKit is denied. The notification-response callbacks are not called, and only `title` and `soundAsset` are applied.
+6. [ ] iOS: alarm permission is reported in `notificationsGranted` and `platformMeta['alarmKitAuthorization']`, while `exactAlarmsGranted` is always `false`.
+7. [ ] Example app: `Expanded` inside a `ListView` causes a layout error (`example/lib/main.dart:468`).
+8. [ ] README install line still says `^0.1.0`, and the podspec `homepage` and `author` are wrong.
+9. [ ] Some files in `lib/` are not formatted, and the CI format step can never fail.
+10. [ ] Raise the minimum Flutter version to 3.44, which the Swift package requires.
+
 ## File Structure Reference
 
 ```
@@ -428,6 +441,6 @@ ios/alarm_plus/                          # Swift Package
       │   └─ AlarmKitIntegration.swift     # AlarmKit metadata type (iOS 26+)
       ├─ Services/                         # NotificationService, AudioService, AlarmStore, AssetResolver
       ├─ Models/                           # AlarmRecord, AlarmEvent, PermissionStatus
-      └─ Utils/                            # Constants, Sanitizer
+      └─ Utils/                            # Constants, Sanitizer, MainThread
 ```
 

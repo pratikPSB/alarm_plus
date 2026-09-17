@@ -14,14 +14,14 @@ export 'src/models/alarm_permission_status.dart';
 export 'src/models/notification_response.dart';
 
 /// The main public API for the alarm_plus plugin.
-/// 
+///
 /// Provides unified cross-platform alarm scheduling and management.
 /// Use this class to schedule alarms, listen to events, manage permissions,
 /// and control active alarms.
-/// 
+///
 /// **Initialization**: Call [initialize] once at app start before scheduling
 ///  alarms.
-/// 
+///
 /// **Example**:
 /// ```dart
 /// await AlarmPlus.initialize(
@@ -42,14 +42,14 @@ class AlarmPlus {
   /// Must be called once at app startup before scheduling alarms.
   /// Registers callbacks for notification interactions.
   ///
-   /// **Parameters**:
-   /// - `onDidReceiveNotificationResponse`: Callback when user taps
-   ///   notification in foreground. Called in the main isolate.
-   /// - `onDidReceiveBackgroundNotificationResponse`: Callback when user
-   ///   interacts with notification in background (after swiping up/app
-   ///   killed). Called in a separate background isolate. Must be a
-   ///   top-level or static function annotated with
-   ///   `@pragma('vm:entry-point')`.
+  /// **Parameters**:
+  /// - `onDidReceiveNotificationResponse`: Callback when user taps
+  ///   notification in foreground. Called in the main isolate.
+  /// - `onDidReceiveBackgroundNotificationResponse`: Callback when user
+  ///   interacts with notification in background (after swiping up/app
+  ///   killed). Called in a separate background isolate. Must be a
+  ///   top-level or static function annotated with
+  ///   `@pragma('vm:entry-point')`.
   ///
   /// **Example**:
   /// ```dart
@@ -58,11 +58,11 @@ class AlarmPlus {
   ///   // Handle background notification action (stop/snooze)
   /// }
   ///
-   /// await AlarmPlus.initialize(
-   ///   onDidReceiveNotificationResponse: (resp) =>
-   ///       print('Tapped: ${resp.alarmId}'),
-   ///   onDidReceiveBackgroundNotificationResponse: backgroundCallback,
-   /// );
+  /// await AlarmPlus.initialize(
+  ///   onDidReceiveNotificationResponse: (resp) =>
+  ///       print('Tapped: ${resp.alarmId}'),
+  ///   onDidReceiveBackgroundNotificationResponse: backgroundCallback,
+  /// );
   /// ```
   static Future<void> initialize({
     DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
@@ -109,23 +109,23 @@ class AlarmPlus {
 
   /// Schedules an alarm to fire at a specific time.
   ///
-   /// **Android**: Uses exact alarm scheduling
-   /// (`AlarmManager.setExactAndAllowWhileIdle`).
-   /// Alarms persist in device database and reschedule after reboot.
+  /// **Android**: Uses exact alarm scheduling
+  /// (`AlarmManager.setExactAndAllowWhileIdle`).
+  /// Alarms persist in device database and reschedule after reboot.
   ///
   /// **iOS**: Uses `UNUserNotificationCenter` for best-effort scheduling.
   /// Notifications survive reboot per OS policy.
   ///
   /// **Parameters**:
-   /// - `id`: Unique identifier for this alarm. Used to cancel/snooze.
-   ///   Should be alphanumeric and unique across all scheduled alarms.
-   /// - `time`: Local DateTime when alarm should fire. Plugin
-   ///   automatically converts to UTC for storage. Pass local time;
-   ///   it will be converted.
-   /// - `data`: Custom app-specific JSON data (e.g., alarm metadata).
-   ///   Serialized as JSON string. Persisted to database.
-   /// - `notificationSettings`: Customizes notification appearance,
-   ///   audio, and action texts.
+  /// - `id`: Unique identifier for this alarm. Used to cancel/snooze.
+  ///   Should be alphanumeric and unique across all scheduled alarms.
+  /// - `time`: Local DateTime when alarm should fire. Plugin
+  ///   automatically converts to UTC for storage. Pass local time;
+  ///   it will be converted.
+  /// - `data`: Custom app-specific JSON data (e.g., alarm metadata).
+  ///   Serialized as JSON string. Persisted to database.
+  /// - `notificationSettings`: Customizes notification appearance,
+  ///   audio, and action texts.
   ///
   /// **Returns**: Completes when scheduling request is sent to native platform.
   ///
@@ -283,23 +283,23 @@ class AlarmPlus {
   /// - `error`: Scheduling or platform error. Contains error code/message.
   /// - `permissionChanged`: Permission status changed.
   ///
-   /// **Example**:
-   /// ```dart
-   /// AlarmPlus.events.listen((event) {
-   ///   switch (event.type) {
-   ///     case 'triggered':
-   ///       print('Alarm ${event.id} fired with '
-   ///           '${event.meta['driftMs']}ms drift');
-   ///     case 'snoozed':
-   ///       print('Snoozed for ${event.meta['minutes']} minutes');
-   ///     case 'error':
-   ///       print('Error: ${event.errorCode} - '
-   ///           '${event.errorMessage}');
-   ///     default:
-   ///       break;
-   ///   }
-   /// });
-   /// ```
+  /// **Example**:
+  /// ```dart
+  /// AlarmPlus.events.listen((event) {
+  ///   switch (event.type) {
+  ///     case 'triggered':
+  ///       print('Alarm ${event.id} fired with '
+  ///           '${event.meta['driftMs']}ms drift');
+  ///     case 'snoozed':
+  ///       print('Snoozed for ${event.meta['minutes']} minutes');
+  ///     case 'error':
+  ///       print('Error: ${event.errorCode} - '
+  ///           '${event.errorMessage}');
+  ///     default:
+  ///       break;
+  ///   }
+  /// });
+  /// ```
   static Stream<AlarmEvent> get events => AlarmPlusPlatform.instance.events;
 
   /// Retrieves the alarm that triggered app launch.

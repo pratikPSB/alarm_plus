@@ -98,7 +98,7 @@ class AlarmNotificationSettings {
   /// Example: "Snooze 5m"
   /// Not used by iOS; included for cross-platform consistency.
   final String? snoozeButtonText;
-  
+
   /// Path to a custom sound asset (e.g. 'assets/audio/alarm.mp3')
   ///
   /// Must be included in pubspec.yaml assets.
@@ -106,19 +106,19 @@ class AlarmNotificationSettings {
   /// - **Android**: Looped during ringing service
   /// - **iOS**: Looped via AVAudioPlayer; respects silent switch settings
   final String? soundAsset;
-  
+
   /// The icon name for Android small icon (e.g. 'ic_notification')
   ///
   /// Name of an Android drawable in `android/app/src/main/res/drawable/`.
   /// iOS uses app icon automatically.
   final String? icon;
-  
+
   /// Path to a large icon asset for the notification (e.g. 'assets/images/alarm.png')
   ///
   /// Used on Android for the large icon display.
   /// iOS does not use large icons.
   final String? largeIconAsset;
-  
+
   /// Path to a big picture asset for the notification (e.g. 'assets/images/banner.png')
   ///
   /// Used on Android for big picture notification style.

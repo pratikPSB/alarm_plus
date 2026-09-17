@@ -16,7 +16,8 @@ public class AlarmPlusPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
     eventChannel.setStreamHandler(instance)
   }
 
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  public func handle(_ call: FlutterMethodCall, result rawResult: @escaping FlutterResult) {
+    let result: FlutterResult = { value in runOnMain { rawResult(value) } }
     guard let manager = manager else {
         result(FlutterError(code: "ERR_NOT_INITIALIZED", message: "AlarmManager not initialized", details: nil))
         return

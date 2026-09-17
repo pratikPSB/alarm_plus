@@ -38,15 +38,24 @@ class AlarmPermissionManager(private val context: Context) {
         )
     }
 
-    fun requestFromSettings(): Map<String, Any?> {
+    fun missingPermissionIntents(): List<Intent> {
+        val intents = mutableListOf<Intent>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationsGranted()) {
-            openNotificationSettings()
+            intents += notificationSettingsIntent()
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !exactAlarmsGranted()) {
-            openExactAlarmSettings()
+            intents += exactAlarmSettingsIntent()
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE && !fullScreenIntentGranted()) {
-            openFullScreenIntentSettings()
+            intents += fullScreenIntentSettingsIntent()
+        }
+        return intents
+    }
+
+    fun requestFromSettings(): Map<String, Any?> {
+        for (intent in missingPermissionIntents()) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            safeStartActivity(intent)
         }
         return getStatus()
     }
@@ -78,20 +87,16 @@ class AlarmPermissionManager(private val context: Context) {
         }
     }
 
-    private fun openExactAlarmSettings() {
-        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+    private fun exactAlarmSettingsIntent(): Intent {
+        return Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
             data = Uri.parse("package:${context.packageName}")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        safeStartActivity(intent)
     }
 
-    private fun openFullScreenIntentSettings() {
-        val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+    private fun fullScreenIntentSettingsIntent(): Intent {
+        return Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
             data = Uri.parse("package:${context.packageName}")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        safeStartActivity(intent)
     }
 
     private fun safeStartActivity(intent: Intent) {
@@ -102,11 +107,9 @@ class AlarmPermissionManager(private val context: Context) {
         }
     }
 
-    private fun openNotificationSettings() {
-        val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+    private fun notificationSettingsIntent(): Intent {
+        return Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
             putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
-        safeStartActivity(intent)
     }
 }

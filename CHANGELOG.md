@@ -1,10 +1,26 @@
 ## 0.2.0
-- iOS: adopted AlarmKit on iOS 26+ for real system alarms, with the existing `UNUserNotificationCenter` path kept as the best-effort fallback on iOS 15-25.
-  - Host apps must add `NSAlarmKitUsageDescription` to `Info.plist`; `requestPermissions()` now requests AlarmKit authorization on iOS 26+.
-  - On iOS 26+ AlarmKit owns the alert sound and haptics, so app-level volume and vibration settings do not apply there.
-- iOS: restructured the plugin from the single `ios/Classes/AlarmPlusPlugin.swift` file into a Swift Package under `ios/alarm_plus/Sources/alarm_plus/`, split into `Core/`, `Services/`, `Models/` and `Utils/`. This adds Swift Package Manager support.
-- iOS: raised the minimum deployment target from 13.0 to 15.0.
-- Example/tooling: moved the example app to Flutter 3.47 (AGP 9.3.2, Gradle 9.5, Kotlin 2.3.20, compileSdk 37) and to `package:material_ui`. The plugin's own Dart and Android configuration is unchanged, so consumers on older Flutter versions are unaffected.
+
+### Breaking changes
+
+- **iOS minimum deployment target is now 15.0** (was 13.0).
+- **iOS 26+ schedules alarms through AlarmKit, with no local-notification fallback.**
+  - Host apps must add `NSAlarmKitUsageDescription` to `Info.plist`. Without it the app cannot get AlarmKit authorization, so no alarms can be scheduled on iOS 26+.
+  - `schedule()`, `snooze()` and `triggerNow()` throw a `PlatformException` with code `ERR_SCHEDULE_FAILED`, and emit an `error` event, unless AlarmKit authorization has been granted. Call `requestPermissions()` before scheduling.
+  - `requestPermissions()` asks for AlarmKit authorization instead of notification authorization.
+  - `getPermissionStatus()` reports AlarmKit authorization in `notificationsGranted`, always returns `false` for `criticalAlertsEligible`, and adds `platformMeta['alarmKitAuthorization']` (`authorized`, `denied`, `notDetermined`).
+  - Only `title` and `soundAsset` from `AlarmNotificationSettings` are applied. `body`, the action button texts, the large icon and big picture fields, `vibrationSettings` and `volumeSettings` are ignored; the system owns the alert's sound and haptics.
+  - The system alert offers Stop only. There is no Snooze action on the alert; `snooze()` still works when called from Dart.
+  - `onDidReceiveNotificationResponse` and `onDidReceiveBackgroundNotificationResponse` are not called for AlarmKit alarms. Use the `events` stream (`triggered`, `stopped`), which delivers only while the app process is running.
+  - `getLaunchAlarm()` returns an alarm only if the app observed it while it was still alerting.
+- **The iOS Swift Package requires Flutter 3.44 or newer when Swift Package Manager is enabled.** `Package.swift` depends on the `FlutterFramework` package, which Flutter only generates from 3.44. Apps on older Flutter versions must keep Swift Package Manager disabled and use the CocoaPods podspec, which still works.
+
+### Changes
+
+- iOS: AlarmKit on iOS 26+ gives real system alarms, including the lock-screen alert. iOS 15-25 keep the existing `UNUserNotificationCenter` best-effort path with unchanged behavior.
+- iOS: restructured the plugin from the single `ios/Classes/AlarmPlusPlugin.swift` file into a Swift Package under `ios/alarm_plus/Sources/alarm_plus/`, split into `Core/`, `Services/`, `Models/` and `Utils/`, adding Swift Package Manager support alongside the podspec.
+- Android: `requestPermissions()` now opens the needed settings screens one at a time and completes only after the user returns from the last one, so the returned status and the `permissionChanged` event reflect what the user actually granted. Previously it opened every screen at once and completed immediately with the unchanged status. Without an attached activity it keeps the old behavior.
+- iOS: results, events and notification responses are now always delivered to Flutter on the main thread. They were previously sent from background threads, which Flutter reports as a cause of data loss or crashes.
+- Example: moved the example app to Flutter 3.47 (AGP 9.3.2, Gradle 9.5, Kotlin 2.3.20, compileSdk 37) and to `package:material_ui`. The plugin's Dart API and Android configuration are unchanged.
 
 ## 0.1.3
 - Added Vibration and Volume customization:

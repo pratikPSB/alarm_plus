@@ -296,7 +296,9 @@ final class PluginAlarmManager: NotificationServiceDelegate {
             "data": ["alarmId": alarmId]
         ]
         store.setPendingNotificationResponse(responseMap)
-        methodChannel?.invokeMethod("didReceiveNotificationResponse", arguments: responseMap)
+        runOnMain { [weak self] in
+            self?.methodChannel?.invokeMethod("didReceiveNotificationResponse", arguments: responseMap)
+        }
 
         if actionId == AlarmConstants.actionStopId {
             stop(result: { _ in })
@@ -578,7 +580,10 @@ final class PluginAlarmManager: NotificationServiceDelegate {
     // MARK: - Helpers
 
     private func emitEvent(_ event: AlarmEvent) {
-        eventSink?(event.toMap())
+        let payload = event.toMap()
+        runOnMain { [weak self] in
+            self?.eventSink?(payload)
+        }
     }
 
     private func currentTimeMillis() -> Int64 {

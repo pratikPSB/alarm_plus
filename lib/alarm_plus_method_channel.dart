@@ -37,8 +37,9 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
       arguments,
     );
     await methodChannel.invokeMethod<void>('initialize', arguments);
-    final pending = await methodChannel
-        .invokeMethod<Map<dynamic, dynamic>>('getLastNotificationResponse');
+    final pending = await methodChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'getLastNotificationResponse',
+    );
     if (pending != null) {
       _onDidReceiveNotificationResponse?.call(
         NotificationResponse.fromMap(Map<String, dynamic>.from(pending)),
@@ -120,8 +121,9 @@ class MethodChannelAlarmPlus extends AlarmPlusPlatform {
 
   @override
   Future<AlarmModel?> getLaunchAlarm() async {
-    final raw = await methodChannel
-        .invokeMethod<Map<dynamic, dynamic>>('getLaunchAlarm');
+    final raw = await methodChannel.invokeMethod<Map<dynamic, dynamic>>(
+      'getLaunchAlarm',
+    );
     if (raw == null) {
       return null;
     }

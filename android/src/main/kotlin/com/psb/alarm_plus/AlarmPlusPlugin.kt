@@ -12,6 +12,7 @@ import com.psb.alarm_plus.core.AlarmLog
 import com.psb.alarm_plus.core.AlarmNotificationResponseMapper
 import com.psb.alarm_plus.core.AlarmPermissionManager
 import com.psb.alarm_plus.core.AlarmScheduler
+import com.psb.alarm_plus.core.PermissionSettingsFlow
 import com.psb.alarm_plus.data.AlarmRepository
 import com.psb.alarm_plus.runtime.AlarmRingingService
 import com.psb.alarm_plus.runtime.background.AlarmBackgroundIsolatePreferences
@@ -43,6 +44,7 @@ class AlarmPlusPlugin :
     private lateinit var repository: com.psb.alarm_plus.data.AlarmRepository
     private lateinit var scheduler: AlarmScheduler
     private lateinit var permissionManager: AlarmPermissionManager
+    private var permissionFlow: PermissionSettingsFlow? = null
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -178,24 +180,44 @@ class AlarmPlusPlugin :
             "getPermissionStatus" -> runAsync(result) {
                 permissionManager.getStatus()
             }
-            "requestPermissions" -> runAsync(result) {
-                val before = permissionManager.getStatus()
-                val after = permissionManager.requestFromSettings()
-                AlarmEventDispatcher.emit(
-                    mapOf(
-                        "type" to AlarmConstants.EVENT_TYPE_PERMISSION_CHANGED,
-                        "atMs" to System.currentTimeMillis(),
-                        "id" to null,
-                        "alarm" to null,
-                        "errorCode" to null,
-                        "errorMessage" to null,
-                        "meta" to mapOf("before" to before, "after" to after)
-                    )
-                )
-                after
-            }
+            "requestPermissions" -> requestPermissions(result)
             else -> result.notImplemented()
         }
+    }
+
+    private fun requestPermissions(result: Result) {
+        permissionFlow?.finish()
+        val before = permissionManager.getStatus()
+        val activity = activityBinding?.activity
+        if (activity == null) {
+            completePermissionRequest(result, before, permissionManager.requestFromSettings())
+            return
+        }
+        val flow = PermissionSettingsFlow(activity, permissionManager.missingPermissionIntents()) {
+            permissionFlow = null
+            completePermissionRequest(result, before, permissionManager.getStatus())
+        }
+        permissionFlow = flow
+        flow.start()
+    }
+
+    private fun completePermissionRequest(
+        result: Result,
+        before: Map<String, Any?>,
+        after: Map<String, Any?>
+    ) {
+        AlarmEventDispatcher.emit(
+            mapOf(
+                "type" to AlarmConstants.EVENT_TYPE_PERMISSION_CHANGED,
+                "atMs" to System.currentTimeMillis(),
+                "id" to null,
+                "alarm" to null,
+                "errorCode" to null,
+                "errorMessage" to null,
+                "meta" to mapOf("before" to before, "after" to after)
+            )
+        )
+        result.success(after)
     }
 
     private fun consumeLaunchAlarm(): Map<String, Any?>? {
@@ -262,6 +284,7 @@ class AlarmPlusPlugin :
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        permissionFlow?.finish()
         activityBinding?.removeOnNewIntentListener(this)
         activityBinding = null
     }
@@ -273,6 +296,7 @@ class AlarmPlusPlugin :
     }
 
     override fun onDetachedFromActivity() {
+        permissionFlow?.finish()
         activityBinding?.removeOnNewIntentListener(this)
         activityBinding = null
     }
